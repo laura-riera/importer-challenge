@@ -8,11 +8,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy the source files
+# Copy the rest of the code (including prisma/migrations/)
 COPY . .
 
 # Build the project
 RUN npm run build
 
-# Run the built app
-CMD ["node", "dist/main"]
+# Run migrations and then start the app
+CMD sh -c "npx prisma migrate deploy && node dist/main"

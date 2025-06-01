@@ -13,3 +13,37 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Country {
+  Id      Int              @id @default(autoincrement())
+  Name    String           @unique
+  Records EmissionRecord[]
+}
+
+model Sector {
+  Id             Int              @id @default(autoincrement())
+  Name           String
+  ParentSectorId Int? //self reference
+  Parent         Sector?          @relation("ParentChild", fields: [ParentSectorId], references: [Id])
+  Children       Sector[]         @relation("ParentChild")
+  Records        EmissionRecord[]
+
+  @@unique([Name, ParentSectorId]) //allows multiple "Other" sectors with different parents
+}
+
+model EmissionRecord {
+  Id    Int    @id @default(autoincrement())
+  Year  Int
+  Value Float?
+
+  CountryId Int
+  Country   Country @relation(fields: [CountryId], references: [Id])
+
+  SectorID Int
+  Sector   Sector @relation(fields: [SectorID], references: [Id])
+
+  @@index([Year])
+  @@index([CountryId])
+  @@index([SectorID])
+}
+

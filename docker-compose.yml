@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:17
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: emissions
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  csv-importer:
+    build: ./csv-importer-microservice
+    ports:
+      - "3001:3000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://user:pass@db:5432/emissions
+
+volumes:
+  pgdata:

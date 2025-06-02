@@ -5,8 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../generated/prisma"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -15,35 +16,34 @@ datasource db {
 }
 
 model Country {
-  Id      Int              @id @default(autoincrement())
-  Name    String           @unique
-  Records EmissionRecord[]
+  id      String           @id @default(uuid())
+  name    String           @unique
+  records EmissionRecord[]
 }
 
 model Sector {
-  Id             Int              @id @default(autoincrement())
-  Name           String
-  ParentSectorId Int? //self reference
-  Parent         Sector?          @relation("ParentChild", fields: [ParentSectorId], references: [Id])
-  Children       Sector[]         @relation("ParentChild")
-  Records        EmissionRecord[]
+  id             String           @id @default(uuid())
+  name           String
+  parentSectorId String? // self-reference to UUID now
+  parent         Sector?          @relation("ParentChild", fields: [parentSectorId], references: [id])
+  children       Sector[]         @relation("ParentChild")
+  records        EmissionRecord[]
 
-  @@unique([Name, ParentSectorId]) //allows multiple "Other" sectors with different parents
+  @@unique([name, parentSectorId]) // allows multiple "Other" sectors with different parents
 }
 
 model EmissionRecord {
-  Id    Int    @id @default(autoincrement())
-  Year  Int
-  Value Float?
+  id    String @id @default(uuid())
+  year  Int
+  value Float?
 
-  CountryId Int
-  Country   Country @relation(fields: [CountryId], references: [Id])
+  countryId String
+  country   Country @relation(fields: [countryId], references: [id])
 
-  SectorID Int
-  Sector   Sector @relation(fields: [SectorID], references: [Id])
+  sectorID String
+  sector   Sector @relation(fields: [sectorID], references: [id])
 
-  @@index([Year])
-  @@index([CountryId])
-  @@index([SectorID])
+  @@index([year])
+  @@index([countryId])
+  @@index([sectorID])
 }
-

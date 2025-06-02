@@ -8,8 +8,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy the rest of the code (including prisma/migrations/)
+# Copy the rest of the code
 COPY . .
+
+# Generate Prisma
+RUN DATABASE_URL="postgresql://user:pass@db:5432/emissions" npx prisma generate
 
 # Build the project
 RUN npm run build

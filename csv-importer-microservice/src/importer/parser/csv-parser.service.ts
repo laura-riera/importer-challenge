@@ -1,9 +1,12 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { parse } from 'csv-parse/sync';
 import { CsvRowDto } from '../dto/csv-row.dto';
+import { CsvRowValidatorService } from '../validator/csv-row-validator.service';
 
 @Injectable()
 export class CsvParserService {
+  constructor(private readonly rowValidator: CsvRowValidatorService) {}
+
   // Parses a CSV file into an array of CsvRowDto using normalized headers
   async parse(
     file: Express.Multer.File,
@@ -18,9 +21,9 @@ export class CsvParserService {
     try {
       const content = file.buffer.toString('utf-8');
 
-      // Override original headers with normalized ones
       records = parse(content, {
         columns: normalizedHeaders,
+        from_line: 2, // skip the original header row
         skip_empty_lines: true,
         trim: true,
       }) as Record<string, string>[];
@@ -44,19 +47,23 @@ export class CsvParserService {
           const year = parseInt(key, 10);
           const raw = String(rawValue);
           const parsed = parseFloat(raw);
-          const val = raw === '' || isNaN(parsed) ? null : parsed;
+          const value = raw === '' || isNaN(parsed) ? null : parsed;
 
-          result.push({
+          const dto: CsvRowDto = {
             countryCode,
             sectorName,
             parentSectorName,
             year,
-            value: val,
-          });
+            value,
+          };
+
+          // Validate the row before adding
+          this.rowValidator.validate(dto);
+
+          result.push(dto);
         }
       }
     }
-
     return await Promise.resolve(result);
   }
 }

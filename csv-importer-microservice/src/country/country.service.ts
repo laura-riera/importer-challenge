@@ -9,10 +9,10 @@ export class CountryService {
 
   async create(createCountryDto: CreateCountryDto) {
     console.log('DTO recibido:', createCountryDto);
-    console.log('Payload a enviar:', { name: createCountryDto.name });
+    console.log('Payload a enviar:', { code: createCountryDto.code });
     return await this.prisma.country.create({
       data: {
-        name: createCountryDto.name,
+        code: createCountryDto.code,
       },
     });
   }
@@ -36,7 +36,7 @@ export class CountryService {
     return await this.prisma.country.update({
       where: { id: id },
       data: {
-        name: updateCountryDto.name,
+        code: updateCountryDto.code,
       },
     });
   }

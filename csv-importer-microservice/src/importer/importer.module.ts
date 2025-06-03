@@ -4,6 +4,7 @@ import { ImporterController } from './importer.controller';
 import { CsvParserService } from './parser/csv-parser.service';
 import { CsvStructureValidatorService } from './validator/csv-structure-validator.service';
 import { CsvRowValidatorService } from './validator/csv-row-validator.service';
+import { ImporterAggregatorService } from './aggregator/import-aggregator.service';
 import { AccessModule } from '../access/access.module';
 
 @Module({
@@ -14,6 +15,7 @@ import { AccessModule } from '../access/access.module';
     CsvParserService,
     CsvStructureValidatorService,
     CsvRowValidatorService,
+    ImporterAggregatorService,
   ],
 })
 export class ImporterModule {}

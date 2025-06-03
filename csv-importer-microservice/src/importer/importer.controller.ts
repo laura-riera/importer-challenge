@@ -1,12 +1,74 @@
-import { Controller, Get } from '@nestjs/common';
-import { ImporterAggregatorService } from './aggregator/import-aggregator.service';
+import {
+  Controller,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+  ParseFilePipeBuilder,
+  HttpCode,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ImporterService } from './importer.service';
+import { Express } from 'express';
+import {
+  ApiConsumes,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
-@Controller('importer')
+@ApiTags('CSV Import')
+@Controller('import')
 export class ImporterController {
-  constructor(private readonly aggregator: ImporterAggregatorService) {}
+  constructor(private readonly importerService: ImporterService) {}
 
-  @Get('summary')
-  async getImportSummary() {
-    return this.aggregator.getSummary();
+  @Post('csv')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Import emissions from CSV file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: `Upload a CSV file with the following structure:
+  
+- Required columns (case-insensitive): \`Country\`, \`Sector\`, \`Parent sector\`
+- One or more year columns with 4-digit format (e.g., \`1990\`, \`2020\`)
+- Each row represents emissions data for a country and sector in a given year
+
+**Example CSV:**
+\`\`\`csv
+Country,Sector,Parent sector,1990,2000
+USA,Energy,Production,0.54,-1.2
+CAN,Transport,Services,10.3,0.62
+\`\`\`
+`,
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'CSV imported successfully and summary returned',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid file format or structure',
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadCsv(
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: 'text/csv' })
+        .build({
+          fileIsRequired: true,
+        }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.importerService.import(file);
   }
 }

@@ -3,7 +3,6 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
-  ParseFilePipeBuilder,
   HttpCode,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -16,6 +15,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { CsvFileValidationPipe } from './csv-file-validation.pipe';
 
 @ApiTags('CSV Import')
 @Controller('import')
@@ -60,15 +60,10 @@ CAN,Transport,Services,10.3,0.62
   })
   @UseInterceptors(FileInterceptor('file'))
   async uploadCsv(
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({ fileType: 'text/csv' })
-        .build({
-          fileIsRequired: true,
-        }),
-    )
+    @UploadedFile(CsvFileValidationPipe)
     file: Express.Multer.File,
   ) {
+    console.log(file);
     return this.importerService.import(file);
   }
 }

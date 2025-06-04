@@ -32,8 +32,6 @@ export class ImporterService {
 
     // 3. Step: Validate and insert each row
     for (const row of rows) {
-      this.rowValidator.validate(row);
-
       const country = await this.countryService.getOrCreateCountry(
         row.countryCode,
       );

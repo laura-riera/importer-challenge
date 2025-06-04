@@ -1,9 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/access/prisma/prisma.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class EmissionService {
-  constructor(private readonly prisma: PrismaService) {}
+  private skippedLogPath = path.join(process.cwd(), 'skipped-emissions.log');
+
+  constructor(private readonly prisma: PrismaService) {
+    fs.writeFileSync(this.skippedLogPath, '');
+  }
 
   async getOrCreateEmissionRecord(
     countryId: string,
@@ -19,8 +25,11 @@ export class EmissionService {
       },
     });
 
-    if (existing) return existing;
-
+    if (existing) {
+      const log = `Skipped existing record: country=${countryId}, sector=${sectorId}, year=${year}\n`;
+      fs.appendFileSync(this.skippedLogPath, log);
+      return existing;
+    }
     return this.prisma.emissionRecord.create({
       data: {
         countryId,

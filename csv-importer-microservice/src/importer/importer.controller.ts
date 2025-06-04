@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -65,5 +66,11 @@ CAN,Transport,Services,10.3,0.62
   ) {
     console.log(file);
     return this.importerService.import(file);
+  }
+  @Get('data')
+  @ApiOperation({ summary: 'View imported emissions (TEMPORAL)' })
+  @ApiResponse({ status: 200, description: 'List of imported emissions' })
+  async getImportedData() {
+    return this.importerService.getAllEmissions();
   }
 }

@@ -38,4 +38,17 @@ export class EmissionService {
       _max: { value: true, year: true },
     });
   }
+
+  async findAll(): Promise<any[]> {
+    return this.prisma.emissionRecord.findMany({
+      include: {
+        country: true,
+        sector: true,
+      },
+      orderBy: {
+        year: 'desc',
+      },
+      take: 200,
+    });
+  }
 }

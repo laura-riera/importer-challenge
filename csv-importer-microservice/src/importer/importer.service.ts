@@ -53,4 +53,8 @@ export class ImporterService {
     // 4. Step: Return import summary
     return this.aggregator.getSummary();
   }
+
+  async getAllEmissions(): Promise<any[]> {
+    return this.emissionService.findAll();
+  }
 }

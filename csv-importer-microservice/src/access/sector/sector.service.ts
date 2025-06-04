@@ -1,49 +1,49 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/access/prisma/prisma.service';
+import { Sector } from '../../../generated/prisma';
 
 @Injectable()
 export class SectorService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getOrCreateSector(name: string, parentName?: string) {
-    let parentId: string | null = null;
+  async getOrCreateSector(name: string, parentName?: string): Promise<Sector> {
+    const isOther = name.trim().toLowerCase() === 'other';
+
+    let parent: Sector | null = null;
 
     if (parentName) {
-      let parent = await this.findByNameAndParent(parentName, null);
+      parent = await this.prisma.sector.findFirst({
+        where: {
+          name: parentName,
+        },
+      });
 
       if (!parent) {
-        parent = await this.prisma.sector.create({
-          data: {
-            name: parentName,
-            parentSectorId: null,
-          },
-        });
+        parent = await this.getOrCreateSector(parentName);
       }
-
-      parentId = parent.id;
     }
 
-    const existing = await this.findByNameAndParent(name, parentId);
+    const existing: Sector | null = await this.prisma.sector.findFirst({
+      where: isOther ? { name, parentSectorId: parent?.id ?? null } : { name },
+    });
 
-    if (existing) return existing;
+    if (existing) {
+      if (!existing.parentSectorId && parent?.id) {
+        return this.prisma.sector.update({
+          where: { id: existing.id },
+          data: { parentSectorId: parent.id },
+        });
+      }
+      return existing;
+    }
 
-    return this.prisma.sector.create({
+    const created = await this.prisma.sector.create({
       data: {
         name,
-        parentSectorId: parentId,
+        parentSectorId: parent?.id,
       },
     });
-  }
 
-  private async findByNameAndParent(
-    name: string,
-    parentSectorId: string | null,
-  ) {
-    return this.prisma.sector.findFirst({
-      where: {
-        name,
-        parentSectorId,
-      },
-    });
+    return created;
   }
 }

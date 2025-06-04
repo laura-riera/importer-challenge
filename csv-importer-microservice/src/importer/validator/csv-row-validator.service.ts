@@ -25,8 +25,8 @@ export class CsvRowValidatorService {
     }
 
     // Value: must be null or a non-negative number
-    if (value !== null && (typeof value !== 'number' || value < 0)) {
-      throw new BadRequestException(`Invalid value for year ${year}: ${value}`);
+    if (value !== null && typeof value !== 'number') {
+      throw new BadRequestException(`Invalid value type for year ${year}`);
     }
   }
 }

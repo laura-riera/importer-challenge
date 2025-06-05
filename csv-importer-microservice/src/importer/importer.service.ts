@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CsvStructureValidatorService } from './validator/csv-structure-validator.service';
 import { CsvParserService } from './parser/csv-parser.service';
-import { CsvRowValidatorService } from './validator/csv-row-validator.service';
-import { CsvRowDto } from './dto/csv-row.dto';
 import { CountryService } from '../access/country/country.service';
 import { SectorService } from '../access/sector/sector.service';
 import { EmissionService } from '../access/emission/emission.service';
@@ -13,7 +11,6 @@ export class ImporterService {
   constructor(
     private readonly structureValidator: CsvStructureValidatorService,
     private readonly parser: CsvParserService,
-    private readonly rowValidator: CsvRowValidatorService,
     private readonly countryService: CountryService,
     private readonly sectorService: SectorService,
     private readonly emissionService: EmissionService,
@@ -21,16 +18,19 @@ export class ImporterService {
   ) {}
 
   async import(file: Express.Multer.File) {
-    // 1. Step: Get raw headers and validate structure
+    // 1. Get raw headers and validate structure
     const rawHeaderLine = file.buffer.toString('utf-8').split(/\r?\n/)[0];
-    const rawHeaders = rawHeaderLine.split(','); // or '\t' if TSV
+    const rawHeaders = rawHeaderLine.split(',');
     const normalizedHeaders =
       this.structureValidator.validateAndNormalize(rawHeaders);
 
-    // 2. Step: Parse CSV rows into DTOs
-    const rows: CsvRowDto[] = await this.parser.parse(file, normalizedHeaders);
+    // 2. Parse CSV rows into DTOs and get parse summary
+    const { rows, summary: parseSummary } = this.parser.parse(
+      file,
+      normalizedHeaders,
+    );
 
-    // 3. Step: Validate and insert each row
+    // 3. Insert each valid row
     for (const row of rows) {
       const country = await this.countryService.getOrCreateCountry(
         row.countryCode,
@@ -48,8 +48,14 @@ export class ImporterService {
       );
     }
 
-    // 4. Step: Return import summary
-    return this.aggregator.getSummary();
+    // 4. Get aggregation result
+    const summaryData = await this.aggregator.getSummary();
+
+    // 5. Return both summaries
+    return {
+      summary: parseSummary,
+      aggregations: summaryData,
+    };
   }
 
   async getAllEmissions(): Promise<any[]> {

@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CsvFileValidationPipe } from './csv-file-validation.pipe';
+import { CsvFileValidationPipe } from './validator/csv-format-validator.pipe';
 
 @ApiTags('CSV Import')
 @Controller('import')

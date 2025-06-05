@@ -1,19 +1,21 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CsvRowDto } from '../dto/csv-row.dto';
 
 @Injectable()
 export class CsvRowValidatorService {
-  // Validates a single CsvRowDto object
-  validate(row: CsvRowDto): void {
+  validate(row: CsvRowDto): string | null {
     const { countryCode, sectorName, year, value } = row;
 
-    // Required fields
-    if (!countryCode.trim()) {
-      throw new BadRequestException('Row is missing a country code');
+    if (!countryCode) {
+      return 'Missing country code';
     }
 
-    if (!sectorName.trim()) {
-      throw new BadRequestException('Row is missing a sector name');
+    if (countryCode.length < 2) {
+      return 'Invalid country code';
+    }
+
+    if (!sectorName) {
+      return 'Missing sector name';
     }
 
     if (
@@ -21,12 +23,13 @@ export class CsvRowValidatorService {
       year < 1800 ||
       year > new Date().getFullYear()
     ) {
-      throw new BadRequestException(`Invalid year: ${year}`);
+      return `Invalid year: ${year}`;
     }
 
-    // Value: must be null or a non-negative number
     if (value !== null && typeof value !== 'number') {
-      throw new BadRequestException(`Invalid value type for year ${year}`);
+      return `Invalid value type for year ${year}`;
     }
+
+    return null;
   }
 }

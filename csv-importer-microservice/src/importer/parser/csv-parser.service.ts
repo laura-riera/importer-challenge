@@ -2,6 +2,10 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { parse } from 'csv-parse/sync';
 import { CsvRowDto } from '../dto/csv-row.dto';
 import { CsvRowValidatorService } from '../validator/csv-row-validator.service';
+import {
+  normalizeCountryCode,
+  normalizeSectorName,
+} from '../utils/text-normalizer';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -9,11 +13,10 @@ import * as path from 'path';
 export class CsvParserService {
   constructor(private readonly rowValidator: CsvRowValidatorService) {}
 
-  // Parses a CSV file into an array of CsvRowDto using normalized headers
-  async parse(
+  parse(
     file: Express.Multer.File,
     normalizedHeaders: string[],
-  ): Promise<CsvRowDto[]> {
+  ): { rows: CsvRowDto[]; summary: string } {
     if (!file?.buffer) {
       throw new BadRequestException('No file uploaded or file is empty');
     }
@@ -25,7 +28,7 @@ export class CsvParserService {
 
       records = parse(content, {
         columns: normalizedHeaders,
-        from_line: 2, // skip the original header row
+        from_line: 2,
         skip_empty_lines: true,
         trim: true,
       }) as Record<string, string>[];
@@ -35,14 +38,18 @@ export class CsvParserService {
       );
     }
 
-    const result: CsvRowDto[] = [];
-    const logFilePath = path.join(process.cwd(), 'incomplete-rows.log');
-    fs.writeFileSync(logFilePath, ''); // Limpia el archivo al inicio
+    const rows: CsvRowDto[] = [];
+    const errors: string[] = [];
+
+    const incompleteLogPath = path.join(process.cwd(), 'incomplete-rows.log');
+    const validationLogPath = path.join(process.cwd(), 'validation-errors.log');
+    fs.writeFileSync(incompleteLogPath, '');
+    fs.writeFileSync(validationLogPath, '');
 
     for (const [index, row] of records.entries()) {
-      const countryCode = row['country'];
-      const sectorName = row['sector'];
-      const parentSectorName = row['parent sector'] || null;
+      const countryCode = normalizeCountryCode(row['country']);
+      const sectorName = normalizeSectorName(row['sector']);
+      const parentSectorName = normalizeSectorName(row['parent sector']);
 
       if (!countryCode || !sectorName) continue;
 
@@ -63,19 +70,33 @@ export class CsvParserService {
             value,
           };
 
-          // Validate the row before adding
-          this.rowValidator.validate(dto);
+          const error = this.rowValidator.validate(dto);
+          if (error) {
+            errors.push(
+              `Row ${index + 2} (${countryCode}, ${sectorName}, year ${year}): ${error}`,
+            );
+            continue;
+          }
 
-          result.push(dto);
+          rows.push(dto);
           emissionsGenerated++;
         }
       }
 
       if (emissionsGenerated < 165) {
-        const logLine = `Row ${index + 1} (${countryCode}, ${sectorName}): ${emissionsGenerated} emissions generated\n`;
-        fs.appendFileSync(logFilePath, logLine);
+        const logLine = `Row ${index + 2} (${countryCode}, ${sectorName}): ${emissionsGenerated} emissions generated\n`;
+        fs.appendFileSync(incompleteLogPath, logLine);
       }
     }
-    return await Promise.resolve(result);
+
+    if (errors.length > 0) {
+      fs.writeFileSync(validationLogPath, errors.join('\n'));
+    }
+
+    const summary = `Import completed with ${rows.length} valid rows and ${errors.length} errors${
+      errors.length ? ' (see validation-errors.log)' : ''
+    }`;
+
+    return { rows, summary };
   }
 }

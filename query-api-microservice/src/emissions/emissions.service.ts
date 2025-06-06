@@ -8,8 +8,10 @@ export class EmissionsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getEmissions(query: QueryEmissionsDto) {
-    const { country, sector, year, minValue, maxValue } = query;
+    const { country, sector, year, minValue, maxValue, sort, page, pageSize } =
+      query;
 
+    // 1. Build dinamic filter
     const where: Prisma.EmissionRecordWhereInput = {
       ...(year && { year }),
       ...(minValue !== undefined || maxValue !== undefined
@@ -32,9 +34,26 @@ export class EmissionsService {
       }),
     };
 
-    const [results] = await Promise.all([
+    // 2. Sort
+    let orderBy: Prisma.EmissionRecordOrderByWithRelationInput = {
+      year: 'asc',
+    };
+    if (sort) {
+      const [field, direction = 'asc'] = sort.split(':');
+      orderBy = { [field]: direction.toLowerCase() };
+    }
+
+    // 3. Pagination
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
+
+    // 4. Query
+    const [results, total] = await Promise.all([
       this.prisma.emissionRecord.findMany({
         where,
+        orderBy,
+        skip,
+        take,
         include: {
           country: true,
           sector: true,
@@ -45,6 +64,12 @@ export class EmissionsService {
 
     return {
       data: results,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
     };
   }
 }

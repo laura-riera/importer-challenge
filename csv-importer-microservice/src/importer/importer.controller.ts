@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CsvFileValidationPipe } from './validator/csv-format-validator.pipe';
+import { CsvFormatValidatorPipe } from './validator/csv-format-validator.pipe';
 
 @ApiTags('CSV Import')
 @Controller('import')
@@ -61,7 +61,7 @@ CAN,Transport,Services,10.3,0.62
   })
   @UseInterceptors(FileInterceptor('file'))
   async uploadCsv(
-    @UploadedFile(CsvFileValidationPipe)
+    @UploadedFile(CsvFormatValidatorPipe)
     file: Express.Multer.File,
   ) {
     console.log(file);

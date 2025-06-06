@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../generated/prisma"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Country {
+  id      String           @id @default(uuid())
+  code    String           @unique
+  records EmissionRecord[]
+}
+
+model Sector {
+  id             String           @id @default(uuid())
+  name           String
+  parentSectorId String? // self-reference to UUID now
+  parent         Sector?          @relation("ParentChild", fields: [parentSectorId], references: [id])
+  children       Sector[]         @relation("ParentChild")
+  records        EmissionRecord[]
+
+  @@unique([name, parentSectorId]) // allows multiple "Other" sectors with different parents
+}
+
+model EmissionRecord {
+  id    String @id @default(uuid())
+  year  Int
+  value Float?
+
+  countryId String
+  country   Country @relation(fields: [countryId], references: [id])
+
+  sectorID String
+  sector   Sector @relation(fields: [sectorID], references: [id])
+
+  @@index([year])
+  @@index([countryId])
+  @@index([sectorID])
+}

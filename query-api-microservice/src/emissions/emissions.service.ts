@@ -31,5 +31,20 @@ export class EmissionsService {
         },
       }),
     };
+
+    const [results] = await Promise.all([
+      this.prisma.emissionRecord.findMany({
+        where,
+        include: {
+          country: true,
+          sector: true,
+        },
+      }),
+      this.prisma.emissionRecord.count({ where }),
+    ]);
+
+    return {
+      data: results,
+    };
   }
 }

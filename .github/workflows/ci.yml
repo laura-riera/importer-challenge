@@ -1,0 +1,40 @@
+name: Monorepo CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  test-csv-importer:
+    name: Test CSV Importer Microservice
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: csv-importer-microservice
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+  # test-query-api:
+  #   name: Test Query API Microservice
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: query-api-microservice
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v3
+
+  #     - name: Install dependencies
+  #       run: npm ci
+
+  #     - name: Run tests
+  #       run: npm test

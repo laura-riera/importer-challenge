@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
 import {
@@ -13,15 +12,27 @@ import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class QueryEmissionsDto {
-  @ApiPropertyOptional({ description: 'Country code (e.g., MEX)' })
+  @ApiPropertyOptional({ description: 'Country code (e.g., ESP)' })
   @IsOptional()
   @IsString()
   country?: string;
 
-  @ApiPropertyOptional({ description: 'Sector name (e.g., Energy)' })
+  @ApiPropertyOptional({
+    description: 'Sector name (e.g., Fuel Combustion Activities)',
+  })
   @IsOptional()
   @IsString()
   sector?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Parent sector name (e.g., Energy). Use "null" to filter sectors with no parent.',
+    type: String,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  parentSector?: string | null;
 
   @ApiPropertyOptional({ description: 'Year of the emission record' })
   @IsOptional()

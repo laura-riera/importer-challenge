@@ -2,14 +2,35 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueryEmissionsDto } from './dto/query-emissions.dto';
 import { Prisma } from '../../generated/prisma';
+import {
+  normalizeCountryCode,
+  normalizeSectorName,
+} from '../utils/text-normalizer';
 
 @Injectable()
 export class EmissionsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getEmissions(query: QueryEmissionsDto) {
-    const { country, sector, year, minValue, maxValue, sort, page, pageSize } =
-      query;
+    const {
+      country,
+      sector,
+      parentSector,
+      year,
+      minValue,
+      maxValue,
+      sort,
+      page,
+      pageSize,
+    } = query;
+
+    const normalizedCountry = country
+      ? normalizeCountryCode(country)
+      : undefined;
+    const normalizedSector = sector ? normalizeSectorName(sector) : undefined;
+    const normalizedParentSector = parentSector
+      ? normalizeSectorName(parentSector)
+      : undefined;
 
     // 1. Build dinamic filter
     const where: Prisma.EmissionRecordWhereInput = {
@@ -27,11 +48,21 @@ export class EmissionsService {
           code: country,
         },
       }),
-      ...(sector && {
-        sector: {
-          name: sector,
-        },
+      ...(normalizedCountry && {
+        country: { code: normalizedCountry },
       }),
+      ...(normalizedSector || parentSector !== undefined
+        ? {
+            sector: {
+              ...(normalizedSector && { name: normalizedSector }),
+              ...(parentSector === 'null'
+                ? { parent: { is: null } }
+                : parentSector !== undefined && normalizedParentSector
+                  ? { parent: { is: { name: normalizedParentSector } } }
+                  : {}),
+            },
+          }
+        : {}),
     };
 
     // 2. Sort

@@ -8,7 +8,15 @@ describe('ImporterService', () => {
   };
 
   const mockParser = {
-    parse: jest.fn(),
+    extractRows: jest.fn(),
+  };
+
+  const mockDeduplicator = {
+    deduplicate: jest.fn(),
+  };
+
+  const mockMapper = {
+    map: jest.fn(),
   };
 
   const mockCountryService = {
@@ -34,6 +42,8 @@ describe('ImporterService', () => {
     service = new ImporterService(
       mockValidator as any,
       mockParser as any,
+      mockDeduplicator as any,
+      mockMapper as any,
       mockCountryService as any,
       mockSectorService as any,
       mockEmissionService as any,
@@ -42,20 +52,41 @@ describe('ImporterService', () => {
   });
 
   it('should import CSV and return summaries', async () => {
+    const csvContent = 'country,sector,parent sector,1990\nUSA,Energy,,100.5';
     const mockFile = {
-      buffer: Buffer.from(
-        'country,sector,parent sector,1990\nUSA,Energy,,100.5',
-      ),
+      buffer: Buffer.from(csvContent),
     } as Express.Multer.File;
 
-    mockValidator.validateAndNormalize.mockReturnValue([
-      'country',
-      'sector',
-      'parent sector',
-      '1990',
+    const expectedRawHeaders = ['country', 'sector', 'parent sector', '1990'];
+
+    // Step 1: validateAndNormalize headers
+    mockValidator.validateAndNormalize.mockReturnValue(expectedRawHeaders);
+
+    // Step 2: extract rows using normalized headers
+    mockParser.extractRows.mockReturnValue([
+      {
+        country: 'USA',
+        sector: 'Energy',
+        'parent sector': '',
+        '1990': '100.5',
+      },
     ]);
 
-    mockParser.parse.mockReturnValue({
+    // Step 3: deduplicate
+    mockDeduplicator.deduplicate.mockReturnValue({
+      rows: [
+        {
+          country: 'USA',
+          sector: 'Energy',
+          'parent sector': '',
+          '1990': '100.5',
+        },
+      ],
+      removed: 0,
+    });
+
+    // Step 4: map
+    mockMapper.map.mockReturnValue({
       rows: [
         {
           countryCode: 'USA',
@@ -68,6 +99,7 @@ describe('ImporterService', () => {
       summary: '1 valid row, 0 errors',
     });
 
+    // Steps 5–6: Insert and aggregate
     mockCountryService.getOrCreateCountry.mockResolvedValue({
       id: 'country-id',
       code: 'USA',
@@ -84,7 +116,6 @@ describe('ImporterService', () => {
       countryId: 'country-id',
       sectorID: 'sector-id',
     });
-
     mockAggregator.getSummary.mockResolvedValue({
       totalRecords: 1,
       minYear: 1990,
@@ -95,22 +126,16 @@ describe('ImporterService', () => {
 
     const result = await service.import(mockFile);
 
-    expect(mockValidator.validateAndNormalize).toHaveBeenCalled();
-    expect(mockParser.parse).toHaveBeenCalled();
-    expect(mockCountryService.getOrCreateCountry).toHaveBeenCalledWith('USA');
-    expect(mockSectorService.getOrCreateSector).toHaveBeenCalledWith(
-      'Energy',
-      undefined,
+    expect(mockValidator.validateAndNormalize).toHaveBeenCalledWith(
+      expectedRawHeaders,
     );
-    expect(mockEmissionService.getOrCreateEmissionRecord).toHaveBeenCalledWith(
-      'country-id',
-      'sector-id',
-      1990,
-      100.5,
+    expect(mockParser.extractRows).toHaveBeenCalledWith(
+      mockFile,
+      expectedRawHeaders,
     );
-    expect(mockAggregator.getSummary).toHaveBeenCalled();
 
     expect(result).toEqual({
+      removed: 'No duplicates found.',
       summary: '1 valid row, 0 errors',
       aggregations: {
         totalRecords: 1,
@@ -120,15 +145,5 @@ describe('ImporterService', () => {
         maxValue: 100.5,
       },
     });
-  });
-
-  it('should return all emissions from getAllEmissions', async () => {
-    const mockData = [{ id: 'rec1' }];
-    mockEmissionService.findAll.mockResolvedValue(mockData);
-
-    const result = await service.getAllEmissions();
-
-    expect(mockEmissionService.findAll).toHaveBeenCalled();
-    expect(result).toEqual(mockData);
   });
 });

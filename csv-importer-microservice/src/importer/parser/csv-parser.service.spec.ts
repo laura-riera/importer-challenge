@@ -1,99 +1,47 @@
 import { CsvParserService } from './csv-parser.service';
-import { CsvRowValidatorService } from '../validator/csv-row-validator.service';
 import { BadRequestException } from '@nestjs/common';
-import * as fs from 'fs';
 
 describe('CsvParserService', () => {
   let service: CsvParserService;
-  let mockRowValidator: jest.Mocked<CsvRowValidatorService>;
 
   beforeEach(() => {
-    mockRowValidator = {
-      validate: jest.fn(),
-    } as unknown as jest.Mocked<CsvRowValidatorService>;
-
-    jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
-    jest.spyOn(fs, 'appendFileSync').mockImplementation(() => {});
-
-    service = new CsvParserService(mockRowValidator);
+    service = new CsvParserService();
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  it('should parse valid CSV and return rows and summary', () => {
-    const csvContent = `country,sector,parent sector,1990,1991
-USA,Energy,,100.5,200.7`;
-
-    const file = {
-      buffer: Buffer.from(csvContent),
+  it('should parse CSV content into records', () => {
+    const mockFile = {
+      buffer: Buffer.from(
+        'country,sector,parent sector,1990\nUSA,Energy,,100.5',
+      ),
     } as Express.Multer.File;
 
-    mockRowValidator.validate.mockReturnValue(null);
+    const headers = ['country', 'sector', 'parent sector', '1990'];
 
-    const result = service.parse(file, [
-      'country',
-      'sector',
-      'parent sector',
-      '1990',
-      '1991',
+    const result = service.extractRows(mockFile, headers);
+
+    expect(result).toEqual([
+      {
+        country: 'USA',
+        sector: 'Energy',
+        'parent sector': '',
+        '1990': '100.5',
+      },
     ]);
-
-    expect(result.rows).toHaveLength(2);
-    expect(result.summary).toMatch(/2 valid rows and 0 errors/);
-
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(mockRowValidator.validate).toHaveBeenCalledTimes(2);
   });
 
-  it('should skip rows with validation errors and write to log', () => {
-    const csvContent = `country,sector,parent sector,1990
-USA,Energy,,invalid`;
-
-    const file = {
-      buffer: Buffer.from(csvContent),
-    } as Express.Multer.File;
-
-    mockRowValidator.validate.mockReturnValue('Invalid value');
-
-    const writeFileSpy = jest.spyOn(fs, 'writeFileSync');
-    const appendFileSpy = jest.spyOn(fs, 'appendFileSync');
-
-    const result = service.parse(file, [
-      'country',
-      'sector',
-      'parent sector',
-      '1990',
-    ]);
-
-    expect(result.rows).toHaveLength(0);
-    expect(result.summary).toMatch(/0 valid rows and 1 errors/);
-    expect(writeFileSpy).toHaveBeenCalledWith(
-      expect.stringContaining('validation-errors.log'),
-      expect.stringContaining('Invalid value'),
+  it('should throw error if file is empty or not uploaded', () => {
+    expect(() => service.extractRows(null as any, ['a', 'b'])).toThrow(
+      BadRequestException,
     );
-    expect(appendFileSpy).toHaveBeenCalled();
   });
 
-  it('should throw BadRequestException if CSV is malformed', () => {
-    const csvContent = `country,sector,parent sector,1990
-"USA,Energy,,"100.5"`;
-
-    const file = {
-      buffer: Buffer.from(csvContent),
+  it('should throw BadRequestException on invalid CSV content', () => {
+    const mockFile = {
+      buffer: Buffer.from('this,is\nnot,a,valid,csv\n"\n'),
     } as Express.Multer.File;
 
-    expect(() =>
-      service.parse(file, ['country', 'sector', 'parent sector', '1990']),
-    ).toThrow(BadRequestException);
-  });
-
-  it('should throw BadRequestException if file is missing or empty', () => {
-    const file = { buffer: null } as unknown as Express.Multer.File;
-
-    expect(() =>
-      service.parse(file, ['country', 'sector', 'parent sector', '1990']),
-    ).toThrow(BadRequestException);
+    expect(() => service.extractRows(mockFile, ['a', 'b', 'c'])).toThrow(
+      BadRequestException,
+    );
   });
 });

@@ -22,18 +22,18 @@ describe('EmissionService', () => {
     jest.clearAllMocks();
     service = new EmissionService(mockPrismaService);
 
-    // Mock fs.appendFileSync para evitar efectos secundarios
     (fs.appendFileSync as jest.Mock).mockImplementation(() => {});
     (fs.writeFileSync as jest.Mock).mockImplementation(() => {});
   });
 
   it('should return existing emission record and write to log if found', async () => {
-    const existing: EmissionRecord = {
+    const existing = {
       id: '1',
       year: 2000,
       value: 10,
       countryId: 'country-1',
       sectorID: 'sector-1',
+      sector: { name: 'Energy' },
     };
 
     mockFindFirst.mockResolvedValueOnce(existing);
@@ -51,11 +51,66 @@ describe('EmissionService', () => {
         sectorID: 'sector-1',
         year: 2000,
       },
+      include: {
+        sector: true,
+      },
     });
 
     expect(fs.appendFileSync).toHaveBeenCalled();
-    expect(result).toBe(existing);
     expect(mockCreate).not.toHaveBeenCalled();
+    expect(result).toBe(existing);
+  });
+
+  it('should create new record if existing record has sector name "Other"', async () => {
+    const existingWithOtherSector = {
+      id: 'existing-id',
+      year: 2005,
+      value: 15,
+      countryId: 'country-3',
+      sectorID: 'sector-3',
+      sector: { name: 'Other' },
+    };
+
+    const created: EmissionRecord = {
+      id: '3',
+      year: 2005,
+      value: 20,
+      countryId: 'country-3',
+      sectorID: 'sector-3',
+    };
+
+    mockFindFirst.mockResolvedValueOnce(existingWithOtherSector);
+    mockCreate.mockResolvedValueOnce(created);
+
+    const result = await service.getOrCreateEmissionRecord(
+      'country-3',
+      'sector-3',
+      2005,
+      20,
+    );
+
+    expect(mockFindFirst).toHaveBeenCalledWith({
+      where: {
+        countryId: 'country-3',
+        sectorID: 'sector-3',
+        year: 2005,
+      },
+      include: {
+        sector: true,
+      },
+    });
+
+    expect(mockCreate).toHaveBeenCalledWith({
+      data: {
+        countryId: 'country-3',
+        sectorID: 'sector-3',
+        year: 2005,
+        value: 20,
+      },
+    });
+
+    expect(fs.appendFileSync).not.toHaveBeenCalled();
+    expect(result).toEqual(created);
   });
 
   it('should create new emission record if not found', async () => {
@@ -77,6 +132,17 @@ describe('EmissionService', () => {
       25,
     );
 
+    expect(mockFindFirst).toHaveBeenCalledWith({
+      where: {
+        countryId: 'country-2',
+        sectorID: 'sector-2',
+        year: 2001,
+      },
+      include: {
+        sector: true,
+      },
+    });
+
     expect(mockCreate).toHaveBeenCalledWith({
       data: {
         countryId: 'country-2',
@@ -86,7 +152,7 @@ describe('EmissionService', () => {
       },
     });
 
+    expect(fs.appendFileSync).not.toHaveBeenCalled();
     expect(result).toEqual(created);
-    expect(fs.appendFileSync).not.toHaveBeenCalled(); // because it wasn't skipped
   });
 });

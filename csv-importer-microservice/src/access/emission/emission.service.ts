@@ -23,9 +23,12 @@ export class EmissionService {
         sectorID: sectorId,
         year,
       },
+      include: {
+        sector: true,
+      },
     });
 
-    if (existing) {
+    if (existing && existing.sector.name !== 'Other') {
       const log = `Skipped existing record: country=${countryId}, sector=${sectorId}, year=${year}\n`;
       fs.appendFileSync(this.skippedLogPath, log);
       return existing;

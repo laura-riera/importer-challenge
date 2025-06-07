@@ -1,6 +1,6 @@
 import {
   Controller,
-  Get,
+  // Get,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -29,17 +29,15 @@ export class ImporterController {
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: `Upload a CSV file with the following structure:
-  
-- Required columns (case-insensitive): \`Country\`, \`Sector\`, \`Parent sector\`
-- One or more year columns with 4-digit format (e.g., \`1990\`, \`2020\`)
-- Each row represents emissions data for a country and sector in a given year
 
-**Example CSV:**
-\`\`\`csv
-Country,Sector,Parent sector,1990,2000
-USA,Energy,Production,0.54,-1.2
-CAN,Transport,Services,10.3,0.62
-\`\`\`
+Each row represents emissions data for a country and sector in a range of years
+
+To ensure a valid import, the CSV file must include the following columns. Column names are case-insensitive. Duplicate columns are not allowed.
+- **Country**: Code representing the country or region associated with the emission data (e.g., \`CUB\`, \`ESP\`, \`SWZ\`)
+- **Sector**: The economic or activity sector to which the emission value belongs (e.g., \`Energy\`, \`Transport\`, \`Waste\`)
+- **Parent sector**: The broader category or grouping to which the Sector belongs (e.g., \`Energy\` could be a parent of \`Fuel Combustion Activities\`)
+- One or more **year** columns with 4-digit format (e.g., \`1990\`, \`2020\`)
+
 `,
     schema: {
       type: 'object',
@@ -66,11 +64,5 @@ CAN,Transport,Services,10.3,0.62
   ) {
     console.log(file);
     return this.importerService.import(file);
-  }
-  @Get('data')
-  @ApiOperation({ summary: 'View imported emissions (TEMPORAL)' })
-  @ApiResponse({ status: 200, description: 'List of imported emissions' })
-  async getImportedData() {
-    return this.importerService.getAllEmissions();
   }
 }

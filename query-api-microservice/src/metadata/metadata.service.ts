@@ -10,8 +10,8 @@ export class MetadataService {
     const [totalRecords, range, countries, sectors] = await Promise.all([
       this.prisma.emissionRecord.count(),
       this.prisma.emissionRecord.aggregate({
-        _min: { year: true },
-        _max: { year: true },
+        _min: { year: true, value: true },
+        _max: { year: true, value: true },
       }),
       this.prisma.country.findMany({
         select: { code: true },
@@ -28,6 +28,8 @@ export class MetadataService {
       totalRecords,
       minYear: range._min.year,
       maxYear: range._max.year,
+      minValue: range._min.value,
+      maxValue: range._max.value,
       availableCountries: countries.map((c) => c.code),
       availableSectors: sectors.map((s) => s.name),
     };

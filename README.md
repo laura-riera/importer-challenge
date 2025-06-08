@@ -19,6 +19,7 @@ This project follows a modular, microservice-based architecture for managing and
 
 ## 📁 Project Structure Overview
 
+```text
 ├── csv-importer-microservice/
 │   ├── importer/         # Orchestrates CSV import pipeline
 │   ├── access/           # Database access logic
@@ -31,6 +32,7 @@ This project follows a modular, microservice-based architecture for managing and
 ├── data/                 # Raw dataset + analysis notebook
 ├── docker-compose.yml    # Full stack orchestration
 └── .github/              # CI with GitHub Actions
+```
 
 Both microservices follow standard NestJS conventions and include:
 

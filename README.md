@@ -2,7 +2,7 @@
 
 This project follows a modular, microservice-based architecture for managing and querying historical emission datasets. It is split into two main services: one for importing CSV data and another for exposing it via a REST API. The setup supports flexible querying, clean separation of concerns, and is optimized for local development using Docker.
 
-> 📄 **Click [here](https://drive.google.com/file/d/12n98iNz19cjwC0J58YCy2mmviVLF4ztB/view?usp=sharing) to access the project's complete documentation.**
+> 📄 **Click [here](https://drive.google.com/file/d/1678dEA3Jicgu4m1i4y8VNXmGOIwH9yz0/view?usp=sharing) to access the project's complete documentation.**
 
 ---
 

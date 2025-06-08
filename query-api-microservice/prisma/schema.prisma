@@ -24,12 +24,12 @@ model Country {
 model Sector {
   id             String           @id @default(uuid())
   name           String
-  parentSectorId String? // self-reference to UUID now
+  parentSectorId String?
   parent         Sector?          @relation("ParentChild", fields: [parentSectorId], references: [id])
   children       Sector[]         @relation("ParentChild")
   records        EmissionRecord[]
 
-  @@unique([name, parentSectorId]) // allows multiple "Other" sectors with different parents
+  @@unique([name, parentSectorId])
 }
 
 model EmissionRecord {

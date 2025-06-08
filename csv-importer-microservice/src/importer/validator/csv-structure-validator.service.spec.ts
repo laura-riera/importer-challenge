@@ -16,7 +16,7 @@ describe('CsvStructureValidatorService', () => {
   });
 
   it('should throw if required columns are missing', () => {
-    const headers = ['Country', 'Sector']; // missing 'Parent Sector'
+    const headers = ['Country', 'Sector'];
     expect(() => service.validateAndNormalize(headers)).toThrow(
       'Missing required column(s): parent sector',
     );

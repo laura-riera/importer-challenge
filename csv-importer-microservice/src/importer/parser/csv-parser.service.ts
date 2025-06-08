@@ -16,7 +16,7 @@ export class CsvParserService {
 
       const records = parse(content, {
         columns: normalizedHeaders,
-        from_line: 2, // asumes encabezado en la línea 1
+        from_line: 2,
         skip_empty_lines: true,
         trim: true,
       }) as Record<string, string>[];

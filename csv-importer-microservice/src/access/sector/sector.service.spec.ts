@@ -58,23 +58,18 @@ describe('SectorService', () => {
   });
 
   it('should create parent sector recursively if needed', async () => {
-    // Paso 1: "Parent" no existe, se busca
-    mockFindFirst.mockResolvedValueOnce(null); // llamada #1: buscar 'Parent'
+    mockFindFirst.mockResolvedValueOnce(null);
 
-    // Paso 2: se entra en recursión y se vuelve a buscar 'Parent'
-    mockFindFirst.mockResolvedValueOnce(null); // llamada #2: buscar 'Parent' de nuevo en recursivo
+    mockFindFirst.mockResolvedValueOnce(null);
 
-    // Paso 3: se crea el sector 'Parent'
     mockCreate.mockResolvedValueOnce({
       id: 'parent-id',
       name: 'Parent',
       parentSectorId: null,
     });
 
-    // Paso 4: ahora se busca 'Child'
-    mockFindFirst.mockResolvedValueOnce(null); // llamada #3: buscar 'Child'
+    mockFindFirst.mockResolvedValueOnce(null);
 
-    // Paso 5: se crea 'Child' con el ID de su padre
     mockCreate.mockResolvedValueOnce({
       id: 'child-id',
       name: 'Child',
@@ -82,8 +77,6 @@ describe('SectorService', () => {
     });
 
     const result = await service.getOrCreateSector('Child', 'Parent');
-
-    // ✅ Validaciones actualizadas
 
     expect(mockFindFirst).toHaveBeenNthCalledWith(1, {
       where: { name: 'Parent' },

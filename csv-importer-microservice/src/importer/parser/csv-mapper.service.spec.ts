@@ -28,8 +28,8 @@ describe('CsvMapperService', () => {
       },
     ];
 
-    mockValidator.validate.mockReturnValueOnce(null); // 1990
-    mockValidator.validate.mockReturnValueOnce(null); // 1991
+    mockValidator.validate.mockReturnValueOnce(null);
+    mockValidator.validate.mockReturnValueOnce(null);
 
     const { rows, summary } = service.map(input);
 
